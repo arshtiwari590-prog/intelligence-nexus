@@ -416,9 +416,27 @@ httpServer.listen(PORT, () => {
   console.log(`🔗 Connected to Neo4j`);
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ 
+    error: err.message,
+    status: 'error'
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  await neo4jDriver.close();
-  pgPool.end();
+  try {
+    await neo4jDriver.close();
+    pgPool.end();
+  } catch (e) {
+    console.error('Shutdown error:', e);
+  }
   process.exit(0);
 });
