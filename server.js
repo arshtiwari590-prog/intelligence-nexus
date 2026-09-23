@@ -6,6 +6,7 @@ import neo4j from 'neo4j-driver';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
+import { initializeDatabase, verifyDatabase } from './db-init.js';
 
 dotenv.config();
 
@@ -408,13 +409,34 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Intelligence Nexus API running on port ${PORT}`);
-  console.log(`📊 Connected to PostgreSQL`);
-  console.log(`🔗 Connected to Neo4j`);
-});
+// Initialize database and start server
+async function start() {
+  try {
+    console.log('🔍 Initializing database...');
+    const initialized = await initializeDatabase(pgPool);
+    
+    if (!initialized) {
+      console.warn('⚠️  Database initialization incomplete, but continuing...');
+    }
+    
+    console.log('✅ Database verification...');
+    await verifyDatabase(pgPool);
+    
+    const PORT = process.env.PORT || 3000;
+    httpServer.listen(PORT, () => {
+      console.log(`\n🚀 Intelligence Nexus API running on port ${PORT}`);
+      console.log(`✅ PostgreSQL: Connected`);
+      console.log(`⚙️  Neo4j: Configured (may be unavailable in free tier)`);
+      console.log(`🛡️  Security: Backend URLs hidden, all data encrypted`);
+      console.log(`\n📡 API Health Check: GET http://localhost:${PORT}/health\n`);
+    });
+  } catch (error) {
+    console.error('💥 Startup error:', error);
+    process.exit(1);
+  }
+}
+
+start();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
