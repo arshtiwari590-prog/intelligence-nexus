@@ -133,7 +133,7 @@
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/intelligence-nexus.git
+git clone https://github.com/arshtiwari590-prog/intelligence-nexus.git
 cd intelligence-nexus
 ```
 
