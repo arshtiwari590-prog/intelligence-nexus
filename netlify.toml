@@ -1,0 +1,13 @@
+[build]
+  command = "cd frontend && npm install && npm run build"
+  publish = "frontend/dist"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://intelligence-nexus-backend.onrender.com/api/:splat"
+  status = 200
+  force = false
+
+[dev]
+  command = "cd frontend && npm run dev"
+  port = 3000
