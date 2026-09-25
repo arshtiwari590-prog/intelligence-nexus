@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { initializeDatabase, verifyDatabase } from './db-init.js';
+import { seedDatabase } from './db-seed.js';
 
 dotenv.config();
 
@@ -36,10 +37,10 @@ app.post('/api/osint/search', async (req, res) => {
 
     if (type === 'all' || type === 'people') {
       try {
-        const r = await pgPool.query('SELECT * FROM people WHERE name ILIKE $1 LIMIT $2', [`%${query}%`, limit]);
+        const r = await pgPool.query('SELECT * FROM people WHERE name ILIKE $1 OR email ILIKE $1 LIMIT $2', [`%${query}%`, limit]);
         results.people = r.rows;
       } catch (e) {
-        console.log('People table not ready:', e.message);
+        console.log('People table query error:', e.message);
       }
     }
 
@@ -48,7 +49,7 @@ app.post('/api/osint/search', async (req, res) => {
         const r = await pgPool.query('SELECT * FROM companies WHERE name ILIKE $1 OR domain ILIKE $1 LIMIT $2', [`%${query}%`, limit]);
         results.companies = r.rows;
       } catch (e) {
-        console.log('Companies table not ready:', e.message);
+        console.log('Companies table query error:', e.message);
       }
     }
 
@@ -65,11 +66,7 @@ app.get('/api/osint/person/:id', async (req, res) => {
     const { id } = req.params;
     const person = await pgPool.query('SELECT * FROM people WHERE id = $1', [id]);
     if (person.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-
-    const properties = await pgPool.query('SELECT * FROM properties WHERE owner_id = $1', [id]);
-    const companies = await pgPool.query('SELECT * FROM companies WHERE owner_id = $1', [id]);
-
-    res.json({ person: person.rows[0], properties: properties.rows, companies: companies.rows });
+    res.json({ person: person.rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -81,12 +78,7 @@ app.get('/api/osint/company/:id', async (req, res) => {
     const { id } = req.params;
     const company = await pgPool.query('SELECT * FROM companies WHERE id = $1', [id]);
     if (company.rows.length === 0) return res.status(404).json({ error: 'Not found' });
-
-    const executives = await pgPool.query('SELECT * FROM executives WHERE company_id = $1', [id]);
-    const facilities = await pgPool.query('SELECT * FROM facilities WHERE company_id = $1', [id]);
-    const filings = await pgPool.query('SELECT * FROM sec_filings WHERE company_id = $1 ORDER BY date DESC LIMIT 10', [id]);
-
-    res.json({ company: company.rows[0], executives: executives.rows, facilities: facilities.rows, filings: filings.rows });
+    res.json({ company: company.rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -138,6 +130,9 @@ async function start() {
 
     console.log('✅ Database verification...');
     await verifyDatabase(pgPool);
+
+    console.log('🌱 Seeding database with sample data...');
+    await seedDatabase(pgPool);
 
     const PORT = process.env.PORT || 3000;
     httpServer.listen(PORT, () => {
