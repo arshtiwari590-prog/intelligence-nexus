@@ -7,6 +7,7 @@ import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { initializeDatabase, verifyDatabase } from './db-init.js';
 import { seedDatabase } from './db-seed.js';
+import { seedDatabaseExpanded } from './db-seed-expanded.js';
 
 dotenv.config();
 
@@ -131,8 +132,9 @@ async function start() {
     console.log('✅ Database verification...');
     await verifyDatabase(pgPool);
 
-    console.log('🌱 Seeding database with sample data...');
+    console.log('🌱 Seeding database with comprehensive data...');
     await seedDatabase(pgPool);
+    await seedDatabaseExpanded(pgPool);
 
     const PORT = process.env.PORT || 3000;
     httpServer.listen(PORT, () => {
