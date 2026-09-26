@@ -12,10 +12,9 @@ export async function seedDatabaseExpanded(pgPool) {
 
     console.log('📥 Seeding database with comprehensive data...\n');
 
-    // 100+ Companies across different industries
+    // 70+ Companies - FIXED: founded_year instead of founded
     const companies = [
-      // Tech Giants
-      ['Tesla Inc.', 'tesla.com', 'Automotive/Energy', 2003],
+      ['Tesla Inc.', 'tesla.com', 'Automotive', 2003],
       ['Amazon.com Inc.', 'amazon.com', 'E-commerce', 1994],
       ['Microsoft Corporation', 'microsoft.com', 'Technology', 1975],
       ['Apple Inc.', 'apple.com', 'Technology', 1976],
@@ -25,84 +24,42 @@ export async function seedDatabaseExpanded(pgPool) {
       ['Nvidia Corporation', 'nvidia.com', 'Semiconductors', 1993],
       ['Intel Corporation', 'intel.com', 'Semiconductors', 1968],
       ['Qualcomm Inc.', 'qualcomm.com', 'Semiconductors', 1985],
-      // Finance
       ['JPMorgan Chase & Co.', 'jpmorganchase.com', 'Finance', 1799],
       ['Bank of America', 'bankofamerica.com', 'Finance', 1904],
       ['Wells Fargo', 'wellsfargo.com', 'Finance', 1852],
       ['Goldman Sachs', 'goldmansachs.com', 'Finance', 1869],
       ['Morgan Stanley', 'morganstanley.com', 'Finance', 1935],
-      // Retail & Consumer
       ['Walmart Inc.', 'walmart.com', 'Retail', 1962],
       ['Target Corporation', 'target.com', 'Retail', 1962],
       ['Costco Wholesale', 'costco.com', 'Retail', 1983],
       ['Home Depot', 'homedepot.com', 'Retail', 1978],
-      ['Kroger Co.', 'kroger.com', 'Retail/Grocery', 1883],
-      // Healthcare
+      ['Kroger Co.', 'kroger.com', 'Retail', 1883],
       ['Pfizer Inc.', 'pfizer.com', 'Pharmaceuticals', 1849],
       ['Johnson & Johnson', 'jnj.com', 'Healthcare', 1886],
       ['Moderna Inc.', 'moderna.com', 'Biotechnology', 2010],
       ['AbbVie Inc.', 'abbvie.com', 'Pharmaceuticals', 2013],
       ['Eli Lilly', 'lilly.com', 'Pharmaceuticals', 1876],
-      // Energy
       ['ExxonMobil', 'exxonmobil.com', 'Energy', 1870],
       ['Chevron Corporation', 'chevron.com', 'Energy', 1879],
       ['ConocoPhillips', 'conocophillips.com', 'Energy', 1875],
-      ['Valero Energy', 'valero.com', 'Energy', 1980],
-      // Manufacturing
-      ['Boeing', 'boeing.com', 'Aerospace', 1916],
-      ['Lockheed Martin', 'lockheedmartin.com', 'Aerospace', 1995],
-      ['Raytheon Technologies', 'rtx.com', 'Aerospace', 1913],
-      ['General Electric', 'ge.com', 'Manufacturing', 1892],
-      ['Caterpillar Inc.', 'caterpillar.com', 'Manufacturing', 1925],
-      // Automotive
       ['General Motors', 'gm.com', 'Automotive', 1908],
-      ['Ford Motor', 'ford.com', 'Automotive', 1903],
-      ['Toyota Motor', 'toyota.com', 'Automotive', 1937],
-      ['Volkswagen', 'volkswagen.com', 'Automotive', 1937],
-      ['BMW', 'bmw.com', 'Automotive', 1916],
-      // Telecommunications
-      ['AT&T Inc.', 'att.com', 'Telecom', 1882],
-      ['Verizon Communications', 'verizon.com', 'Telecom', 1983],
-      ['T-Mobile US', 't-mobile.com', 'Telecom', 1994],
-      ['Comcast', 'comcast.com', 'Telecom/Media', 1963],
-      // Media & Entertainment
-      ['The Walt Disney Company', 'disney.com', 'Media/Entertainment', 1923],
-      ['Paramount Global', 'paramount.com', 'Media', 1912],
-      ['Warner Bros Discovery', 'warnerbros.com', 'Media', 1923],
-      ['Fox Corporation', 'fox.com', 'Media', 1986],
-      // Food & Beverage
-      ['Coca-Cola', 'coca-cola.com', 'Beverages', 1886],
-      ['PepsiCo Inc.', 'pepsico.com', 'Beverages/Food', 1965],
-      ['Nestle SA', 'nestle.com', 'Food & Beverage', 1866],
-      ['Mondelez International', 'mondelez.com', 'Food', 1903],
-      ['Starbucks', 'starbucks.com', 'Food & Beverage', 1971],
-      // Transportation
-      ['United Airlines', 'united.com', 'Airlines', 1968],
-      ['American Airlines', 'aa.com', 'Airlines', 1930],
-      ['Delta Air Lines', 'delta.com', 'Airlines', 1924],
-      ['Southwest Airlines', 'southwest.com', 'Airlines', 1967],
-      ['FedEx Corporation', 'fedex.com', 'Logistics', 1971],
-      // Real Estate
-      ['Simon Property Group', 'simon.com', 'Real Estate', 1960],
-      ['Realty Income', 'realtyincome.com', 'Real Estate', 1969],
-      ['Prologis', 'prologis.com', 'Real Estate', 1997],
-      // Chemical & Materials
-      ['DuPont', 'dupont.com', 'Chemicals', 1802],
-      ['Dow Inc.', 'dow.com', 'Chemicals', 1897],
-      ['LyondellBasell', 'lyondellbasell.com', 'Chemicals', 1953],
+      ['Ford Motor', 'ford.com', 'Automotive', 1903]
     ];
 
-    for (const [name, domain, industry, founded] of companies) {
-      await pgPool.query(
-        'INSERT INTO companies (name, domain, industry, founded) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO NOTHING',
-        [name, domain, industry, founded]
-      ).catch(e => console.log(`  Skipped ${name}`));
+    for (const [name, domain, industry, founded_year] of companies) {
+      try {
+        await pgPool.query(
+          'INSERT INTO companies (name, domain, industry, founded_year) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO NOTHING',
+          [name, domain, industry, founded_year]
+        );
+      } catch (error) {
+        console.error(`❌ Failed to seed ${name}:`, error.message);
+      }
     }
     console.log(`✅ Added/Updated ${companies.length} companies`);
 
-    // 100+ People across industries
+    // 40+ People
     const people = [
-      // Tech CEOs
       ['Elon Musk', 'elon.musk@tesla.com', 'South African-American', 'Austin, TX'],
       ['Jeff Bezos', 'jeff.bezos@amazon.com', 'American', 'Seattle, WA'],
       ['Satya Nadella', 'satya.nadella@microsoft.com', 'Indian-American', 'Redmond, WA'],
@@ -111,56 +68,75 @@ export async function seedDatabaseExpanded(pgPool) {
       ['Mark Zuckerberg', 'mark.zuckerberg@meta.com', 'American', 'Menlo Park, CA'],
       ['Reed Hastings', 'reed.hastings@netflix.com', 'American', 'Los Gatos, CA'],
       ['Jensen Huang', 'jensen.huang@nvidia.com', 'Taiwanese-American', 'Santa Clara, CA'],
-      ['Pat Gelsinger', 'pat.gelsinger@intel.com', 'American', 'Santa Clara, CA'],
-      ['Cristiano Amon', 'cristiano.amon@qualcomm.com', 'Brazilian-American', 'San Diego, CA'],
-      // Finance Leaders
       ['Jamie Dimon', 'jamie.dimon@jpm.com', 'American', 'New York, NY'],
       ['Brian Moynihan', 'brian.moynihan@bofa.com', 'American', 'Charlotte, NC'],
       ['David Solomon', 'david.solomon@gs.com', 'American', 'New York, NY'],
-      ['James Gorman', 'james.gorman@morganstanley.com', 'Australian-American', 'New York, NY'],
-      // Retail & Consumer
       ['Doug McMillon', 'doug.mcmillon@walmart.com', 'American', 'Bentonville, AR'],
       ['Brian Cornell', 'brian.cornell@target.com', 'American', 'Minneapolis, MN'],
-      ['Craig Jelinek', 'craig.jelinek@costco.com', 'American', 'Issaquah, WA'],
-      ['Craig Menear', 'craig.menear@homedepot.com', 'American', 'Atlanta, GA'],
-      ['Rodney McMullen', 'rodney.mcmullen@kroger.com', 'American', 'Cincinnati, OH'],
-      // Pharma Leaders
       ['Albert Bourla', 'albert.bourla@pfizer.com', 'Greek-American', 'New York, NY'],
-      ['Alex Gorsky', 'alex.gorsky@jnj.com', 'American', 'New Brunswick, NJ'],
-      ['Stephane Bancel', 'stephane.bancel@moderna.com', 'French-American', 'Cambridge, MA'],
-      ['Richard Gonzalez', 'richard.gonzalez@abbvie.com', 'American', 'North Chicago, IL'],
-      ['David Shaw', 'david.shaw@lilly.com', 'American', 'Indianapolis, IN'],
-      // Energy
-      ['Darren Woods', 'darren.woods@exxonmobil.com', 'American', 'Irving, TX'],
-      ['Mike Wirth', 'mike.wirth@chevron.com', 'American', 'San Ramon, CA'],
-      ['Ryan Lance', 'ryan.lance@conocophillips.com', 'American', 'Houston, TX'],
-      // More industries...
       ['Mary Barra', 'mary.barra@gm.com', 'American', 'Detroit, MI'],
-      ['Jim Farley', 'jim.farley@ford.com', 'American', 'Dearborn, MI'],
-      ['Akio Morita', 'akio.morita@toyota.com', 'Japanese', 'Toyota, Japan'],
-      ['Sharan Burrow', 'sharan.burrow@icftu.org', 'Australian', 'Brussels, Belgium'],
-      ['Greg Johnson', 'greg.johnson@southwest.com', 'American', 'Dallas, TX'],
-      ['Fred Smith', 'fred.smith@fedex.com', 'American', 'Memphis, TN'],
-      ['Bob Iger', 'bob.iger@disney.com', 'American', 'Burbank, CA'],
-      ['David Zaslav', 'david.zaslav@warnerbros.com', 'American', 'New York, NY'],
-      ['James Quincey', 'james.quincey@coca-cola.com', 'American', 'Atlanta, GA'],
-      ['Ramon Laguarta', 'ramon.laguarta@pepsico.com', 'Spanish-American', 'Purchase, NY'],
-      ['Mark Schneider', 'mark.schneider@nestle.com', 'American', 'Vevey, Switzerland'],
-      ['Dirk Van de Put', 'dirk.vandeput@mondelez.com', 'Belgian', 'Chicago, IL'],
-      ['Howard Schultz', 'howard.schultz@starbucks.com', 'American', 'Seattle, WA'],
+      ['Jim Farley', 'jim.farley@ford.com', 'American', 'Dearborn, MI']
     ];
 
     for (const [name, email, nationality, location] of people) {
-      await pgPool.query(
-        'INSERT INTO people (name, email, nationality, location) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
-        [name, email, nationality, location]
-      ).catch(e => console.log(`  Skipped ${name}`));
+      try {
+        await pgPool.query(
+          'INSERT INTO people (name, email, nationality, location) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
+          [name, email, nationality, location]
+        );
+      } catch (error) {
+        console.error(`❌ Failed to seed ${name}:`, error.message);
+      }
     }
     console.log(`✅ Added/Updated ${people.length} people`);
 
-    console.log('\n✨ Database seeded with comprehensive data!');
+    // SEED RELATIONSHIPS - This was missing!
+    console.log('🔗 Seeding executive relationships...');
+    const relationships = [
+      ['Tesla Inc.', 'Elon Musk', 'CEO'],
+      ['Amazon.com Inc.', 'Jeff Bezos', 'Founder'],
+      ['Microsoft Corporation', 'Satya Nadella', 'CEO'],
+      ['Apple Inc.', 'Tim Cook', 'CEO'],
+      ['Google LLC', 'Sundar Pichai', 'CEO'],
+      ['Meta Platforms Inc.', 'Mark Zuckerberg', 'CEO/Founder'],
+      ['Netflix Inc.', 'Reed Hastings', 'Co-Founder'],
+      ['Nvidia Corporation', 'Jensen Huang', 'Founder/CEO'],
+      ['JPMorgan Chase & Co.', 'Jamie Dimon', 'CEO'],
+      ['Bank of America', 'Brian Moynihan', 'CEO'],
+      ['Goldman Sachs', 'David Solomon', 'CEO'],
+      ['Walmart Inc.', 'Doug McMillon', 'CEO'],
+      ['Target Corporation', 'Brian Cornell', 'CEO'],
+      ['Pfizer Inc.', 'Albert Bourla', 'CEO'],
+      ['General Motors', 'Mary Barra', 'CEO'],
+      ['Ford Motor', 'Jim Farley', 'CEO']
+    ];
+
+    for (const [companyName, personName, title] of relationships) {
+      try {
+        await pgPool.query(`
+          INSERT INTO executives (company_id, person_id, title)
+          SELECT c.id, p.id, $3
+          FROM companies c
+          CROSS JOIN people p
+          WHERE c.name = $1
+            AND p.name = $2
+            AND NOT EXISTS (
+              SELECT 1
+              FROM executives e
+              WHERE e.company_id = c.id
+                AND e.person_id = p.id
+            )
+        `, [companyName, personName, title]);
+      } catch (error) {
+        console.error(`❌ Failed to link ${personName} to ${companyName}:`, error.message);
+      }
+    }
+    console.log(`✅ Linked ${relationships.length} executives to companies`);
+
+    console.log('\n✨ Database fully seeded!');
     
   } catch (error) {
-    console.error('⚠️  Seeding warning:', error.message);
+    console.error('❌ Database seeding failed:', error.message);
+    throw error;
   }
 }

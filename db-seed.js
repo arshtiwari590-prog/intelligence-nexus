@@ -12,7 +12,7 @@ export async function seedDatabase(pgPool) {
 
     console.log('📥 Seeding database with sample data...\n');
 
-    // Sample Companies
+    // Sample Companies - FIXED: founded_year instead of founded
     const companies = [
       ['Tesla Inc.', 'tesla.com', 'Automotive', 2003],
       ['Amazon.com Inc.', 'amazon.com', 'E-commerce', 1994],
@@ -26,37 +26,48 @@ export async function seedDatabase(pgPool) {
       ['JPMorgan Chase & Co.', 'jpmorganchase.com', 'Finance', 1799]
     ];
 
-    for (const [name, domain, industry, founded] of companies) {
-      await pgPool.query(
-        'INSERT INTO companies (name, domain, industry, founded) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO NOTHING',
-        [name, domain, industry, founded]
-      );
+    for (const [name, domain, industry, founded_year] of companies) {
+      try {
+        await pgPool.query(
+          'INSERT INTO companies (name, domain, industry, founded_year) VALUES ($1, $2, $3, $4) ON CONFLICT (name) DO NOTHING',
+          [name, domain, industry, founded_year]
+        );
+      } catch (error) {
+        console.error(`❌ Failed to seed company ${name}:`, error.message);
+        throw error;
+      }
     }
     console.log(`✅ Added ${companies.length} companies`);
 
     // Sample People
     const people = [
-      ['Elon Musk', 'elon@tesla.com', 'South African-American', 'Austin, TX'],
-      ['Jeff Bezos', 'jeff@amazon.com', 'American', 'Seattle, WA'],
-      ['Satya Nadella', 'satya@microsoft.com', 'Indian-American', 'Redmond, WA'],
-      ['Tim Cook', 'tim@apple.com', 'American', 'Cupertino, CA'],
-      ['Sundar Pichai', 'sundar@google.com', 'Indian-American', 'Mountain View, CA'],
-      ['Mark Zuckerberg', 'mark@meta.com', 'American', 'Menlo Park, CA'],
-      ['Reed Hastings', 'reed@netflix.com', 'American', 'Los Gatos, CA'],
-      ['Jensen Huang', 'jensen@nvidia.com', 'Taiwanese-American', 'Santa Clara, CA']
+      ['Elon Musk', 'elon.musk@tesla.com', 'South African-American', 'Austin, TX'],
+      ['Jeff Bezos', 'jeff.bezos@amazon.com', 'American', 'Seattle, WA'],
+      ['Satya Nadella', 'satya.nadella@microsoft.com', 'Indian-American', 'Redmond, WA'],
+      ['Tim Cook', 'tim.cook@apple.com', 'American', 'Cupertino, CA'],
+      ['Sundar Pichai', 'sundar.pichai@google.com', 'Indian-American', 'Mountain View, CA'],
+      ['Mark Zuckerberg', 'mark.zuckerberg@meta.com', 'American', 'Menlo Park, CA'],
+      ['Reed Hastings', 'reed.hastings@netflix.com', 'American', 'Los Gatos, CA'],
+      ['Jensen Huang', 'jensen.huang@nvidia.com', 'Taiwanese-American', 'Santa Clara, CA']
     ];
 
     for (const [name, email, nationality, location] of people) {
-      await pgPool.query(
-        'INSERT INTO people (name, email, nationality, location) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
-        [name, email, nationality, location]
-      );
+      try {
+        await pgPool.query(
+          'INSERT INTO people (name, email, nationality, location) VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING',
+          [name, email, nationality, location]
+        );
+      } catch (error) {
+        console.error(`❌ Failed to seed person ${name}:`, error.message);
+        throw error;
+      }
     }
     console.log(`✅ Added ${people.length} people`);
 
     console.log('\n✨ Database seeded with sample data!');
     
   } catch (error) {
-    console.error('⚠️  Seeding warning:', error.message);
+    console.error('❌ Database seeding failed:', error.message);
+    throw error;
   }
 }

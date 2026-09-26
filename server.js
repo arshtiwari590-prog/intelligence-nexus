@@ -20,7 +20,6 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-// Database connection
 const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 // Health check
@@ -28,29 +27,47 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Search API
+// Search API - IMPROVED: understand relationships
 app.post('/api/osint/search', async (req, res) => {
   try {
     const { query, type, limit = 50 } = req.body;
     if (!query) return res.status(400).json({ error: 'Query required' });
 
-    const results = { people: [], companies: [], assets: [], breaches: [], sanctions: [] };
+    const results = { people: [], companies: [] };
 
     if (type === 'all' || type === 'people') {
       try {
-        const r = await pgPool.query('SELECT * FROM people WHERE name ILIKE $1 OR email ILIKE $1 LIMIT $2', [`%${query}%`, limit]);
+        const r = await pgPool.query(`
+          SELECT DISTINCT p.*
+          FROM people p
+          LEFT JOIN executives e ON e.person_id = p.id
+          LEFT JOIN companies c ON c.id = e.company_id
+          WHERE p.name ILIKE $1
+             OR p.email ILIKE $1
+             OR c.name ILIKE $1
+          LIMIT $2
+        `, [`%${query}%`, limit]);
         results.people = r.rows;
       } catch (e) {
-        console.log('People table query error:', e.message);
+        console.error('People search error:', e.message);
       }
     }
 
     if (type === 'all' || type === 'companies') {
       try {
-        const r = await pgPool.query('SELECT * FROM companies WHERE name ILIKE $1 OR domain ILIKE $1 LIMIT $2', [`%${query}%`, limit]);
+        const r = await pgPool.query(`
+          SELECT DISTINCT c.*
+          FROM companies c
+          LEFT JOIN executives e ON e.company_id = c.id
+          LEFT JOIN people p ON p.id = e.person_id
+          WHERE c.name ILIKE $1
+             OR c.domain ILIKE $1
+             OR p.name ILIKE $1
+          LIMIT $2
+        `, [`%${query}%`, limit]);
         results.companies = r.rows;
       } catch (e) {
-        console.log('Companies table query error:', e.message);
+        console.error('Companies search error:', e.message);
       }
     }
 
@@ -122,28 +139,44 @@ app.use((err, req, res, next) => {
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Start server
+// Start server - IMPROVED: fail hard if DB setup fails
 async function start() {
   try {
     console.log('🔍 Initializing database...');
     const initialized = await initializeDatabase(pgPool);
-    if (!initialized) console.warn('⚠️  Database initialization incomplete');
+    if (!initialized) {
+      throw new Error('Database initialization failed');
+    }
 
     console.log('✅ Database verification...');
     await verifyDatabase(pgPool);
 
-    console.log('🌱 Seeding database with comprehensive data...');
+    console.log('🌱 Seeding database with data...');
     await seedDatabase(pgPool);
     await seedDatabaseExpanded(pgPool);
+
+    // Verify seeding worked
+    const counts = await pgPool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM companies) AS companies,
+        (SELECT COUNT(*) FROM people) AS people,
+        (SELECT COUNT(*) FROM executives) AS executives
+    `);
+
+    console.log('📊 Database contents:', counts.rows[0]);
+
+    if (counts.rows[0].companies === 0 || counts.rows[0].people === 0) {
+      throw new Error('Database seeding failed - no data inserted');
+    }
 
     const PORT = process.env.PORT || 3000;
     httpServer.listen(PORT, () => {
       console.log(`\n🚀 Intelligence Nexus API running on port ${PORT}`);
-      console.log(`✅ PostgreSQL: Connected`);
-      console.log(`🛡️  Security: Backend URLs hidden\n`);
+      console.log(`✅ PostgreSQL: Connected with ${counts.rows[0].companies} companies, ${counts.rows[0].people} people\n`);
     });
+
   } catch (error) {
-    console.error('💥 Startup error:', error);
+    console.error('💥 FATAL STARTUP ERROR:', error.message);
     process.exit(1);
   }
 }
