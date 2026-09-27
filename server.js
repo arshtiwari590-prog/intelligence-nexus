@@ -5,9 +5,9 @@ import { Pool } from 'pg';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
-import { initializeDatabase, verifyDatabase } from './db-init.js';
-import { seedDatabase } from './db-seed.js';
-import { seedDatabaseExpanded } from './db-seed-expanded.js';
+import { runMigrations } from './db/migrate.js';
+import { seedDatabase } from './db/seed.js';
+import { verifyDatabase } from './db/verify.js';
 
 dotenv.config();
 
@@ -20,11 +20,10 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
+// PostgreSQL connection with SSL for Render
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
 // Health check
@@ -32,7 +31,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Search API - IMPROVED: understand relationships
+// Search API - relationship-aware
 app.post('/api/osint/search', async (req, res) => {
   try {
     const { query, type, limit = 50 } = req.body;
@@ -55,6 +54,7 @@ app.post('/api/osint/search', async (req, res) => {
         results.people = r.rows;
       } catch (e) {
         console.error('People search error:', e.message);
+        return res.status(500).json({ error: 'People search failed', details: e.message });
       }
     }
 
@@ -73,6 +73,7 @@ app.post('/api/osint/search', async (req, res) => {
         results.companies = r.rows;
       } catch (e) {
         console.error('Companies search error:', e.message);
+        return res.status(500).json({ error: 'Companies search failed', details: e.message });
       }
     }
 
@@ -112,7 +113,7 @@ app.post('/api/osint/case', async (req, res) => {
   try {
     const { title, description } = req.body;
     const caseId = uuidv4();
-    await pgPool.query('INSERT INTO cases (id, title, description, created_at) VALUES ($1, $2, $3, NOW())', [caseId, title, description]);
+    await pgPool.query('INSERT INTO cases (id, title, description) VALUES ($1, $2, $3)', [caseId, title, description]);
     res.json({ caseId, message: 'Case created' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -144,44 +145,34 @@ app.use((err, req, res, next) => {
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Start server - IMPROVED: fail hard if DB setup fails
+// Startup with proper sequence
 async function start() {
   try {
-    console.log('🔍 Initializing database...');
-    const initialized = await initializeDatabase(pgPool);
-    if (!initialized) {
-      throw new Error('Database initialization failed');
-    }
+    console.log('🚀 Intelligence Nexus starting...\n');
 
-    console.log('✅ Database verification...');
+    // Step 1: Migrations
+    console.log('1️⃣  Running migrations...');
+    await runMigrations(pgPool);
+
+    // Step 2: Seed
+    console.log('\n2️⃣  Seeding database...');
+    await seedDatabase(pgPool);
+
+    // Step 3: Verify
+    console.log('\n3️⃣  Verifying invariants...');
     await verifyDatabase(pgPool);
 
-    console.log('🌱 Seeding database with data...');
-    await seedDatabase(pgPool);
-    await seedDatabaseExpanded(pgPool);
-
-    // Verify seeding worked
-    const counts = await pgPool.query(`
-      SELECT
-        (SELECT COUNT(*) FROM companies) AS companies,
-        (SELECT COUNT(*) FROM people) AS people,
-        (SELECT COUNT(*) FROM executives) AS executives
-    `);
-
-    console.log('📊 Database contents:', counts.rows[0]);
-
-    if (counts.rows[0].companies === 0 || counts.rows[0].people === 0) {
-      throw new Error('Database seeding failed - no data inserted');
-    }
-
+    // Step 4: Start server
     const PORT = process.env.PORT || 3000;
     httpServer.listen(PORT, () => {
-      console.log(`\n🚀 Intelligence Nexus API running on port ${PORT}`);
-      console.log(`✅ PostgreSQL: Connected with ${counts.rows[0].companies} companies, ${counts.rows[0].people} people\n`);
+      console.log(`\n✅ Intelligence Nexus API running on port ${PORT}`);
+      console.log(`🔗 Frontend: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+      console.log(`📊 Database: Connected with SSL/TLS\n`);
     });
 
   } catch (error) {
-    console.error('💥 FATAL STARTUP ERROR:', error.message);
+    console.error('\n💥 FATAL STARTUP ERROR:', error.message);
+    console.error(error.stack);
     process.exit(1);
   }
 }
