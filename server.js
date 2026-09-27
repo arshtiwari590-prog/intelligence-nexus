@@ -20,7 +20,12 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 // Health check
 app.get('/health', (req, res) => {
