@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Search, Loader, AlertCircle, Check } from 'lucide-react';
 import './App.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://intelligence-nexus-backend.onrender.com';
+// Netlify Functions are served at /.netlify/functions/
+const API_URL = import.meta.env.VITE_API_URL || '/.netlify/functions';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,7 +29,7 @@ export function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/osint/search`, {
+      const response = await fetch(`${API_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, type: 'all' })
