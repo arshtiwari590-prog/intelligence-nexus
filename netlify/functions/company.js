@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { ensureDbInitialized } from './init-db.js';
 
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -6,6 +7,7 @@ const pgPool = new Pool({
 });
 
 export default async (req, context) => {
+  await ensureDbInitialized();
   if (req.method !== 'GET') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
   }

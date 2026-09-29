@@ -20,7 +20,8 @@ export default async (req, context) => {
   }
 
   try {
-    const { query, type, limit = 50 } = JSON.parse(req.body);
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { query, type, limit = 50 } = body || {};
 
     if (!query) {
       return new Response(JSON.stringify({ error: 'Query required' }), {

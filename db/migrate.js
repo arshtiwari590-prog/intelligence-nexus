@@ -50,7 +50,7 @@ export async function runMigrations(pgPool) {
         await client.query('BEGIN');
         await client.query(sql);
         await client.query(
-          'INSERT INTO schema_migrations (version, name) VALUES ($1, $2)',
+          'INSERT INTO schema_migrations (version, name) VALUES ($1, $2) ON CONFLICT (version) DO NOTHING',
           [version, file]
         );
         await client.query('COMMIT');
