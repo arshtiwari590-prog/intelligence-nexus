@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS breaches (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_companies_name ON companies(name);
-CREATE INDEX idx_companies_domain ON companies(domain);
-CREATE INDEX idx_people_name ON people(name);
-CREATE INDEX idx_people_email ON people(email);
-CREATE INDEX idx_executives_company ON executives(company_id);
-CREATE INDEX idx_executives_person ON executives(person_id);
-CREATE INDEX idx_breaches_email ON breaches(email);
+CREATE INDEX IF NOT EXISTS idx_companies_name ON companies(name);
+CREATE INDEX IF NOT EXISTS idx_companies_domain ON companies(domain);
+CREATE INDEX IF NOT EXISTS idx_people_name ON people(name);
+CREATE INDEX IF NOT EXISTS idx_people_email ON people(email);
+CREATE INDEX IF NOT EXISTS idx_executives_company ON executives(company_id);
+CREATE INDEX IF NOT EXISTS idx_executives_person ON executives(person_id);
+CREATE INDEX IF NOT EXISTS idx_breaches_email ON breaches(email);

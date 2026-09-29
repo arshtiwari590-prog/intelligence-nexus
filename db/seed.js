@@ -5,10 +5,12 @@ export async function seedDatabase(pgPool) {
     console.log('🌱 Starting seed transaction...');
     await client.query('BEGIN');
 
-    // Check if already seeded
-    const count = await client.query('SELECT COUNT(*) FROM companies');
-    if (count.rows[0].count > 0) {
-      console.log('✅ Database already seeded');
+    // Check if demo data exists (Tesla + Elon)
+    const demoCheck = await client.query(
+      `SELECT COUNT(*) as demo_count FROM companies WHERE name = 'Tesla Inc.'`
+    );
+    if (demoCheck.rows[0].demo_count > 0) {
+      console.log('✅ Demo data already seeded, skipping');
       await client.query('ROLLBACK');
       return;
     }
